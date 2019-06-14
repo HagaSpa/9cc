@@ -30,8 +30,9 @@ typedef struct Node {
 
 // 入力プログラム
 char *user_input;
-int pos=0;
- 
+
+// トークナイズされた、トークン列の参照位置
+int pos=0; 
 
 // トークナイズした結果のトークン列はこの配列に保存する
 // 100個以上のトークンは来ないものとする
@@ -122,7 +123,7 @@ int consume(int ty) {
 // プロトタイプ宣言
 Node *mul(void);
 Node *term(void);
-
+Node *unary(void);
 
 // 構文解析を行う
 Node *expr() {
@@ -138,8 +139,9 @@ Node *expr() {
   }
 }
 
+// 乗除算の文法
 Node *mul() {
-  Node *node = term();
+  Node *node = unary();
 
   for (;;) {
     if (consume('*'))
@@ -151,6 +153,16 @@ Node *mul() {
   }
 }
 
+// 単項演算子があるなら、項を反転してノードを返却する
+Node *unary() {
+  if (consume('+'))
+    return term();
+  if (consume('-'))
+    return new_node('-', new_node_num(0), term());
+  return term();
+}
+
+// ()があればexpr()を再帰的に呼び出し、なければ数値のノードを生成する
 Node *term() {
   // 次のトークンが'('なら、"(" expr ")"のはず
   if (consume('(')) {
