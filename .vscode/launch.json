@@ -5,19 +5,14 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "type": "gdb",
-            "request": "launch",
-            "name": "Launch Program",
-            "target": "${workspaceRoot}/9cc",
-            "cwd": "${workspaceRoot}"
-        },
-        {
             "name": "gcc build and debug active file",
             "type": "cppdbg",
             "request": "launch",
             "program": "${fileDirname}/${fileBasenameNoExtension}",
-            "args": [],
-            // "stopAtEntry": false,
+            "args": [
+                // arguments to pass
+            ],
+            "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
