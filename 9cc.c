@@ -1,45 +1,35 @@
 #include <ctype.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+// tokenの種類
+// enum型にTokenKindという名前でエイリアスしている
+typedef enum {
+  TK_RESERVED, // 記号
+  TK_NUM,      // 数値
+  TK_EOF,      // 入力の終わりを表すトークン
+} TokenKind;
 
+typedef struct Token Token;
 
-// トークンの型を表す値
-enum {
-  TK_NUM = 256, // 整数トークン
-  ND_NUM = 256,     // 整数のノードの型
-  TK_EOF,       // 入力の終わりを表すトークン
+// トークン型
+struct Token {
+  TokenKind kind; // トークンの型
+  Token *next;    // 次の入力トークン
+  int val;        // kindがTK_NUMの場合、その数値
+  char *str;      // トークン文字列
 };
-
-// トークンの型
-typedef struct {
-  int ty;      // トークンの型
-  int val;     // tyがTK_NUMの場合、その数値
-  char *input; // トークン文字列（エラーメッセージ用）
-} Token;
-
-// ノードの型
-typedef struct Node {
-  int ty;           // 演算子かND_NUM
-  struct Node *lhs; // 左辺
-  struct Node *rhs; // 右辺
-  int val;          // tyがND_NUMの場合のみ使う
-} Node;
 
 // 入力プログラム
 char *user_input;
 
-// トークナイズされた、トークン列の参照位置
-int pos=0; 
+// 現在着目しているトークン
+Token *token;
 
-// トークナイズした結果のトークン列はこの配列に保存する
-// 100個以上のトークンは来ないものとする
-Token tokens[100];
-
-// エラーを報告するための関数
-// printfと同じ引数を取る
+// エラーを報告する関数
 void error(char *fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
@@ -48,194 +38,138 @@ void error(char *fmt, ...) {
   exit(1);
 }
 
-// エラー箇所を報告するための関数
-void error_at(char *loc, char *msg) {
+// エラー箇所を報告する
+void error_at(char *loc, char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+
   int pos = loc - user_input;
   fprintf(stderr, "%s\n", user_input);
-  fprintf(stderr, "%*s", pos, ""); // pos個の空白を出力
-  fprintf(stderr, "^ %s\n", msg);
+  fprintf(stderr, "%*s", pos, ""); // print pos spaces.
+  fprintf(stderr, "^ ");
+  vfprintf(stderr, fmt, ap);
+  fprintf(stderr, "\n");
   exit(1);
 }
 
-// user_inputが指している文字列を
-// トークンに分割してtokensに保存する
-void tokenize() {
-  char *p = user_input;
+// 次のトークンが期待する記号の時は、トークンを1つ進めてtrueを返す。
+// それ以外はfalseを返す
+bool consume(char op) {
+  // kindがTK_RESERVEDじゃない場合 or 一番最初の文字じゃない場合。
+  // 「+5-4]みたいな式の場合「-」のみ？
+  if (token->kind != TK_RESERVED || token->str[0] != op)
+    return false;
+  token = token->next;
+  return true;
+}
 
-  int i = 0;
+// 次のトークンが期待する記号の時は、トークンを1つ読み進める。
+// それ以外の場合はエラーを報告する。
+void expect(char op) {
+  if (token->kind != TK_RESERVED || token->str[0] != op)
+    error_at(token->str, "expected '%c'", op);
+  token = token->next;
+}
+
+// 次のトークンが数値の時は、トークンを1つ読み進めてその数値を返す。
+// それ以外の場合はエラーを報告する。
+int expect_number() {
+  if (token->kind != TK_NUM) {
+    error_at(token->str, "expected a number");
+  }
+  int val = token->val;
+  token = token->next;
+  return val;
+}
+
+// EOFかどうか
+bool at_eof() {
+  return token->kind == TK_EOF;
+}
+
+// 新しいトークンを作成してcurに繋げる
+Token *new_token(TokenKind kind, Token *cur, char *str) {
+  Token *tok = calloc(1, sizeof(Token));
+  tok->kind = kind;
+  tok->str = str;
+  cur->next = tok;
+  return tok;
+}
+
+// 入力文字列（user_input）をトークナイズして、新しいトークンを返却する
+Token *tokenize() {
+  char *p = user_input;
+  // 最初のトークンを初期化
+  Token head;
+  head.next = NULL;
+  Token *cur = &head;
+
   while (*p) {
-    // 空白文字をスキップ
+    // 空白の場合読み飛ばす
     if (isspace(*p)) {
       p++;
       continue;
     }
 
-    // 演算子 or ()なら
-    if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' || *p == ')') {
-      tokens[i].ty = *p;
-      tokens[i].input = p;
-      i++;
-      p++;
+    // 記号の場合
+    if (*p == '+' || *p == '-') {
+      cur = new_token(TK_RESERVED, cur, p++);
       continue;
     }
 
+    // 数値の場合
     if (isdigit(*p)) {
-      tokens[i].ty = TK_NUM;
-      tokens[i].input = p;
-      tokens[i].val = strtol(p, &p, 10);
-      i++;
+      cur = new_token(TK_NUM, cur, p);
+      cur->val = strtol(p, &p, 10);
       continue;
     }
 
-    error_at(p, "トークナイズできません");
+    error_at(p, "expected a number");
   }
 
-  tokens[i].ty = TK_EOF;
-  tokens[i].input = p;
-}
-
-// 新しいノードを生成する(二項のもの。例えば+3など)
-Node *new_node(int ty, Node *lhs, Node *rhs) {
-  Node *node = malloc(sizeof(Node));
-  node->ty = ty;
-  node->lhs = lhs;
-  node->rhs = rhs;
-  return node;
-}
-
-// 新しいノードを生成する（数値のみ）
-Node *new_node_num(int val) {
-  Node *node = malloc(sizeof(Node));
-  node->ty = ND_NUM;
-  node->val = val;
-  return node;
-}
-
-// 次のトークンが引き数で渡された型と同じなら、トークンを読み進める関数
-int consume(int ty) {
-  if (tokens[pos].ty != ty)
-    return 0;
-  pos++;
-  return 1;
+  new_token(TK_EOF, cur, p);
+  return head.next;
 }
 
 
-// プロトタイプ宣言
-Node *mul(void);
-Node *term(void);
-Node *unary(void);
-
-// 構文解析を行う
-Node *expr() {
-  Node *node = mul();
-
-  for (;;) {
-    if (consume('+'))
-      node = new_node('+', node, mul());
-    else if (consume('-'))
-      node = new_node('-', node, mul());
-    else
-      return node;
-  }
-}
-
-// 乗除算の文法
-Node *mul() {
-  Node *node = unary();
-
-  for (;;) {
-    if (consume('*'))
-      node = new_node('*', node, term());
-    else if (consume('/'))
-      node = new_node('/', node, term());
-    else
-      return node;
-  }
-}
-
-// 単項演算子があるなら、項を反転してノードを返却する
-Node *unary() {
-  if (consume('+'))
-    return term();
-  if (consume('-'))
-    return new_node('-', new_node_num(0), term());
-  return term();
-}
-
-// ()があればexpr()を再帰的に呼び出し、なければ数値のノードを生成する
-Node *term() {
-  // 次のトークンが'('なら、"(" expr ")"のはず
-  if (consume('(')) {
-    Node *node = expr();
-    if (!consume(')'))
-      error_at(tokens[pos].input,
-               "開きカッコに対応する閉じカッコがありません");
-    return node;
-  }
-
-  // そうでなければ数値のはず
-  if (tokens[pos].ty == TK_NUM)
-    return new_node_num(tokens[pos++].val);
-
-  error_at(tokens[pos].input,
-           "数値でも開きカッコでもないトークンです");
-}
-
-
-// アセンブリを生成する
-void gen(Node *node) {
-  if (node->ty == ND_NUM) {
-    printf("  push %d\n", node->val);
-    return;
-  }
-
-  gen(node->lhs);
-  gen(node->rhs);
-
-  printf("  pop rdi\n");
-  printf("  pop rax\n");
-
-  switch (node->ty) {
-  case '+':
-    printf("  add rax, rdi\n");
-    break;
-  case '-':
-    printf("  sub rax, rdi\n");
-    break;
-  case '*':
-    printf("  imul rdi\n");
-    break;
-  case '/':
-    printf("  cqo\n");
-    printf("  idiv rdi\n");
-  }
-
-  printf("  push rax\n");
-}
-
-// main関数
+/**
+ * 与えられた加減算のみの式を、実行するアセンブリを生成する
+ * 
+ * argc: コマンドライン引数の個数
+ * **argv: argvはコマンドライン引数を格納した配列
+ *          **argvなので配列のポインタ変数のポインタ？
+ */
 int main(int argc, char **argv) {
   if (argc != 2) {
-    fprintf(stderr, "引数の個数が正しくありません\n");
+    error("%s: invalid number of arguments", argv[0]);
     return 1;
   }
 
-  // トークナイズしてパースする
+  // トークナイズ実行
   user_input = argv[1];
-  tokenize();
-  Node *node = expr();
+  token = tokenize();
 
   // アセンブリの前半部分を出力
   printf(".intel_syntax noprefix\n");
   printf(".global main\n");
   printf("main:\n");
 
-  // 抽象構文木を下りながらコード生成
-  gen(node);
 
-  // スタックトップに式全体の値が残っているはずなので
-  // それをRAXにロードして関数からの返り値とする
-  printf("  pop rax\n");
+  // 式の最初は数字じゃなくてはならないので、それをチェック
+  // 最初のmov命令を実行
+  printf("  mov rax, %d\n", expect_number());
+
+  // `+ <数>`あるいは`- <数>`というトークンの並びを消費しつつ、アセンブリ出力
+  while (!at_eof()) {
+    if (consume('+')) {
+      printf("  add rax, %d\n", expect_number());
+      continue;
+    }
+
+    expect('-');
+    printf("  sub rax, %d\n", expect_number());
+  }
+
   printf("  ret\n");
   return 0;
 }
