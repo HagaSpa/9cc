@@ -8,16 +8,75 @@
             "type": "process",
             "command": "gcc",
             "args": [
-                "-O0",
-                "-g",
-                "9cc.c",
                 "-o",
-                "9cc"
+                "9cc",
+                "9cc.o",
+                "tokenize.o",
+                "parse.o",
+                "codegen.o"
             ],
             "group": {
                 "kind": "build",
                 "isDefault": true
-            }
-        }
+            },
+            "dependsOrder": "sequence",
+            "dependsOn": ["9cc", "tokenize", "parse", "codegen"]
+        },
+        {
+            "label": "9cc",
+            "type": "process",
+            "command": "gcc",
+            "args": [
+                "-g", 
+                "-static",
+                "-fno-common",
+                "-c",
+                "-o",
+                "9cc.o",
+                "9cc.c"
+            ]
+        },
+        {
+            "label": "tokenize",
+            "type": "process",
+            "command": "gcc",
+            "args": [
+                "-g", 
+                "-static",
+                "-fno-common",
+                "-c",
+                "-o",
+                "tokenize.o",
+                "tokenize.c"
+            ]
+        },
+        {
+            "label": "parse",
+            "type": "process",
+            "command": "gcc",
+            "args": [
+                "-g", 
+                "-static",
+                "-fno-common",
+                "-c",
+                "-o",
+                "parse.o",
+                "parse.c"
+            ]
+        },
+        {
+            "label": "codegen",
+            "type": "process",
+            "command": "gcc",
+            "args": [
+                "-g", 
+                "-static",
+                "-fno-common",
+                "-c",
+                "-o",
+                "codegen.o",
+                "codegen.c"
+            ]
+        },
     ]
 }
