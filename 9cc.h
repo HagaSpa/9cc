@@ -13,6 +13,7 @@
 // enum型にTokenKindという名前でエイリアスしている
 typedef enum {
   TK_RESERVED, // 演算子か記号
+  TK_IDENT,    // 識別子
   TK_NUM,      // 数値
   TK_EOF,      // 入力の終わりを表すトークン
 } TokenKind;
@@ -64,13 +65,13 @@ typedef struct Node Node;
 // 抽象構文木のノードの型
 struct Node{
   NodeKind kind; // ノードの型
+  Node *next;    // 次のノード
   Node *lhs;     // 左辺（left-hand side）
   Node *rhs;     // 右辺（right-hand side）
   int val;       // kindがND_NUMの場合のみ使う
 };
 
-Node *expr(void);
-
+Node *program(void);
 
 /**
  * codegen.c

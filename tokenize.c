@@ -100,8 +100,8 @@ Token *tokenize() {
       continue;
     }
 
-    // 演算子か記号の場合
-    if (strchr("+-*/()<>", *p)) {
+    // 1文字の区切り文字の場合
+    if (ispunct(*p)) {
       cur = new_token(TK_RESERVED, cur, p++, 1);
       continue;
     }

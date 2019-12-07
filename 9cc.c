@@ -13,10 +13,9 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-
-  user_input = argv[1];  // 入力値をグローバル変数へ格納
-  token = tokenize();    // トークナイズを実行
-  Node *node = expr();   // 構文解析を実行
+  user_input = argv[1];     // 入力値をグローバル変数へ格納
+  token = tokenize();       // トークナイズを実行
+  Node *node = program();   // 構文解析を実行
 
   // アセンブリ生成
   codegen(node);
