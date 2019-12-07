@@ -22,6 +22,12 @@ static Node *new_node_num(int val) {
   return node;
 }
 
+static Node *new_node_unary(NodeKind kind, Node *expr) {
+  Node *node = new_node(kind);
+  node->lhs = expr;
+  return node;
+}
+
 static Node *stmt(void);
 static Node *expr(void);
 static Node *equality(void);
@@ -44,8 +50,14 @@ Node *program(void) {
   return head.next;
 }
 
-// stmt = expr ";"
+// stmt = "return" expr ";"
+//        | expr ";"
 static Node *stmt(void) {
+  if (consume("return")) {
+    Node *node = new_node_unary(ND_RETURN, expr());
+    expect(";");
+    return node;
+  }
   Node *node = expr();
   expect(";");
   return node;

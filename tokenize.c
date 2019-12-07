@@ -77,6 +77,16 @@ static bool startswith(char *p, char *q) {
   return memcmp(p, q, strlen(q)) == 0;
 }
 
+// アルファベットならTrue
+static bool is_alpha(char c) {
+  return ('a' <= c && c <= 'z') | ('A' <= c && c <='z') | c == '_';
+}
+
+// アルファベットか数字
+static bool is_alnum(char c) {
+  return is_alpha(c) | ('0' <= c && c <= '9');
+}
+
 // 入力文字列（user_input）をトークナイズして、新しいトークンを返却する
 Token *tokenize() {
   char *p = user_input;
@@ -89,6 +99,13 @@ Token *tokenize() {
     // 空白の場合読み飛ばす
     if (isspace(*p)) {
       p++;
+      continue;
+    }
+
+    // returnの場合
+    if (startswith(p, "return") && !is_alnum(p[6])) {
+      cur = new_token(TK_RESERVED, cur, p, 6);
+      p += 6;
       continue;
     }
 
