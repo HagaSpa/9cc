@@ -1,14 +1,50 @@
 #include "9cc.h"
 
+// nodeの変数をアドレスに変換し、スタックへpush
+void gen_addr(Node *node) {
+  if (node->kind == ND_LVAR) {
+    int offset = (node->name - 'a' + 1) * 8;
+    printf("  lea rax, [rbp-%d]\n", offset);
+    printf("  push rax\n");
+    return;
+  }
+
+  error("not an lvalue");
+}
+
+// スタックからロード 
+void load() {
+  printf("  pop rax\n");
+  printf("  mov rax, [rax]\n");
+  printf("  push rax\n");
+}
+
+// スタック(rsp)へストアする
+void store() {
+  printf("  pop rdi\n");
+  printf("  pop rax\n");
+  printf("  mov [rax], rdi\n");
+  printf("  push rdi\n");
+}
+
 static void gen(Node *node) {
   switch (node->kind) {
   case ND_NUM:
     printf("  push %d\n", node->val);
     return;
+  case ND_LVAR:
+    gen_addr(node);
+    load();
+    return;
+  case ND_ASSIGN:
+    gen_addr(node->lhs);
+    gen(node->rhs);
+    store();
+    return;
   case ND_RETURN:
     gen(node->lhs);
     printf("  pop rax\n");
-    printf("  ret\n");
+    printf("  jmp .Lreturn\n");
     return;
   }
 
@@ -63,6 +99,12 @@ void codegen(Node *node) {
   printf(".global main\n");
   printf("main:\n");
 
+  // プロローグ
+  // 変数26個分(8*26=208)のメモリを確保
+  printf("  push rbp\n");
+  printf("  mov rbp, rsp\n");
+  printf("  sub rsp, 208\n");
+
   // 抽象構文木を下りながらコード生成
   for (Node *n=node; n; n=n->next) {
     gen(n);
@@ -70,5 +112,9 @@ void codegen(Node *node) {
     printf("  pop rax\n");
   }
 
+  // エピローグ
+  printf(".Lreturn:\n");
+  printf("  mov rsp, rbp\n");
+  printf("  pop rbp\n");
   printf("  ret\n");
 }

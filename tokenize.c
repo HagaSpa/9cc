@@ -37,6 +37,15 @@ bool consume(char *op) {
   return true;
 }
 
+// TK_IDENTを確認する
+Token *consume_ident() {
+  if (token->kind != TK_IDENT)
+    return NULL;
+  Token *t = token;
+  token = token->next;
+  return t;
+}
+
 // 次のトークンが期待する記号の時は、トークンを1つ読み進める。
 // それ以外の場合はエラーを報告する。
 void expect(char *op) {
@@ -120,6 +129,12 @@ Token *tokenize() {
     // 1文字の区切り文字の場合
     if (ispunct(*p)) {
       cur = new_token(TK_RESERVED, cur, p++, 1);
+      continue;
+    }
+
+    // 1文字の変数
+    if ('a' <= *p && *p <= 'z') {
+      cur = new_token(TK_IDENT, cur, p++, 1);
       continue;
     }
 
