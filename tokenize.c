@@ -27,6 +27,14 @@ void error_at(char *loc, char *fmt, ...) {
   exit(1);
 }
 
+// str.strndupと同様の振る舞いをするメソッド
+char *my_strndup(char *p, int len) {
+  char *buf = malloc(len + 1);
+  strncpy(buf, p, len);
+  buf[len] = '\0';
+  return buf;
+}
+
 // 次のトークンが期待する記号の時は、トークンを1つ進めてtrueを返す。
 // それ以外はfalseを返す
 bool consume(char *op) {
@@ -133,8 +141,11 @@ Token *tokenize() {
     }
 
     // 1文字の変数
-    if ('a' <= *p && *p <= 'z') {
-      cur = new_token(TK_IDENT, cur, p++, 1);
+    if (is_alpha(*p)) {
+      char *q = p++;
+      while (is_alnum(*p))
+        p++;
+      cur = new_token(TK_IDENT, cur, q, p - q);
       continue;
     }
 

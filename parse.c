@@ -1,5 +1,15 @@
 #include "9cc.h"
 
+Var *locals;
+
+// すでに出現した変数があるか、nameを用いて検索する
+static Var *find_var(Token *tok) {
+  for (Var *var = locals; var; var = var->next)
+    if (strlen(var->name) == tok->len && !memcmp(tok->str, var->name, tok->len))
+      return var;
+  return NULL; 
+}
+
 // ノード生成における共通部分
 static Node *new_node(NodeKind kind) {
   Node *node = calloc(1, sizeof(Node));
@@ -29,10 +39,20 @@ static Node *new_node_unary(NodeKind kind, Node *expr) {
 }
 
 // 変数を表すノード
-static Node *new_node_lvar(char name) {
-  Node *node = new_node(ND_LVAR);
-  node->name = name;
+static Node *new_node_var(Var *var) {
+  Node *node = new_node(ND_VAR);
+  node->var = var;
   return node;
+}
+
+// nameの変数をスタックへpushする
+// localsにある変数をnextに入れて、*nameを新しいvarのnameへ格納（先入れ先だしを表現）
+static Var *push_var(char *name) {
+  Var *var = calloc(1, sizeof(Var));
+  var->next = locals;
+  var->name = name;
+  locals = var;
+  return var;
 }
 
 static Node *stmt(void);
@@ -46,7 +66,9 @@ static Node *unary(void);
 static Node *primary(void);
 
 // program = stmt*
-Node *program(void) {
+Program *program(void) {
+  locals = NULL;
+
   Node head = {};
   Node *cur = &head;
 
@@ -55,7 +77,11 @@ Node *program(void) {
     cur->next = stmt();
     cur = cur->next;
   }
-  return head.next;
+
+  Program *prog = calloc(1, sizeof(Program));
+  prog->node = head.next;
+  prog->locals = locals;
+  return prog;
 }
 
 // stmt = "return" expr ";"
@@ -165,8 +191,12 @@ static Node *primary(void) {
   }
 
   Token *tok = consume_ident();
-  if (tok)
-    return new_node_lvar(*tok->str);
+  if (tok) {
+    Var *var = find_var(tok);
+    if (!var)
+      var = push_var(my_strndup(tok->str, tok->len));
+    return new_node_var(var);
+  }
 
   // そうでなければ数値
   return new_node_num(expect_number());
