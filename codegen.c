@@ -1,5 +1,7 @@
 #include "9cc.h"
 
+int labelseq = 0;
+
 // nodeの変数をアドレスに変換し、スタックへpush
 void gen_addr(Node *node) {
   if (node->kind == ND_VAR) {
@@ -31,6 +33,10 @@ static void gen(Node *node) {
   case ND_NUM:
     printf("  push %d\n", node->val);
     return;
+  case ND_EXPR_STMT:
+    gen(node->lhs);
+    printf("  add rsp, 8\n");
+    return;
   case ND_VAR:
     gen_addr(node);
     load();
@@ -45,6 +51,29 @@ static void gen(Node *node) {
     printf("  pop rax\n");
     printf("  jmp .Lreturn\n");
     return;
+  case ND_IF: {
+    int seq = labelseq++;
+    // elseがあるなら
+    if (node->els) {
+      gen(node->cond);
+      printf("  pop rax\n");
+      printf("  cmp rax, 0\n");
+      printf("  je  .Lelse%d\n", seq);
+      gen(node->then);
+      printf("  jmp .Lend%d\n", seq);
+      printf(".Lelse%d:\n", seq);
+      gen(node->els);
+      printf(".Lend%d:\n", seq);
+    } else {
+      gen(node->cond);
+      printf("  pop rax\n");
+      printf("  cmp rax, 0\n");
+      printf("  je  .Lend%d\n", seq);
+      gen(node->then);
+      printf(".Lend%d:\n", seq);
+    }
+    return;
+    }
   }
 
   gen(node->lhs); // 左辺に対してgen()を再帰呼出
