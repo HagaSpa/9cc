@@ -118,6 +118,7 @@ static void gen(Node *node) {
     break;
   }
 
+  // スタックの最後に式全体の値が残っているので、それをRAXにロードして関数からの返却値とする
 	printf("  push rax\n");
 }
 
@@ -136,8 +137,6 @@ void codegen(Program *prog) {
   // 抽象構文木を下りながらコード生成
   for (Node *n=prog->node; n; n=n->next) {
     gen(n);
-    // スタックの最後に式全体の値が残っているので、それをRAXにロードして関数からの返却値とする
-    printf("  pop rax\n");
   }
 
   // エピローグ
