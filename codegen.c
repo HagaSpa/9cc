@@ -119,7 +119,7 @@ static void gen(Node *node) {
   }
 
   // スタックの最後に式全体の値が残っているので、それをRAXにロードして関数からの返却値とする
-	printf("  push rax\n");
+  printf("  push rax\n");
 }
 
 void codegen(Program *prog) {
