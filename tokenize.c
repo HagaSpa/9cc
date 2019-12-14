@@ -104,6 +104,26 @@ static bool is_alnum(char c) {
   return is_alpha(c) | ('0' <= c && c <= '9');
 }
 
+static char *starts_with_reserved(char *p) {
+  // キーワード
+  static char *kw[] = {"return", "if", "else"};
+
+  for (int i = 0; i < sizeof(kw) / sizeof(*kw); i++) {
+    int len = strlen(kw[i]);
+    if (startswith(p, kw[i]) && !is_alnum(p[len]))
+      return kw[i];
+  }
+
+  // 2文字の演算子
+  static char *ops[] = {"==", "!=", "<=", ">="};
+
+  for (int i = 0; i < sizeof(ops) / sizeof(*ops); i++)
+    if (startswith(p, ops[i]))
+      return ops[i];
+
+  return NULL;
+} 
+
 // 入力文字列（user_input）をトークナイズして、新しいトークンを返却する
 Token *tokenize() {
   char *p = user_input;
@@ -119,18 +139,12 @@ Token *tokenize() {
       continue;
     }
 
-    // returnの場合
-    if (startswith(p, "return") && !is_alnum(p[6])) {
-      cur = new_token(TK_RESERVED, cur, p, 6);
-      p += 6;
-      continue;
-    }
-
-    // 2文字の演算子の場合。（文字列が長い方から判定したいから。)
-    if (startswith(p, "==") || startswith(p, "!=") || 
-        startswith(p, "<=") || startswith(p, ">=")) {
-      cur = new_token(TK_RESERVED, cur, p, 2);
-      p += 2;
+    // キーワード or 2文字の演算子かどうか判定
+    char *kw = starts_with_reserved(p);
+    if (kw) {
+      int len = strlen(kw);
+      cur = new_token(TK_RESERVED, cur, p, len);
+      p += len;
       continue;
     }
 

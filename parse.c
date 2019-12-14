@@ -85,6 +85,7 @@ Program *program(void) {
 }
 
 // stmt = "return" expr ";"
+//        | "if" "(" expr ")" stmt ("else" stmt)?
 //        | expr ";"
 static Node *stmt(void) {
   if (consume("return")) {
@@ -92,7 +93,17 @@ static Node *stmt(void) {
     expect(";");
     return node;
   }
-  Node *node = expr();
+  if (consume("if")) {
+    Node *node = new_node(ND_IF);
+    expect("(");
+    node->cond = expr();
+    expect(")");
+    node->then = stmt();
+    if (consume("else"))
+      node->els = stmt();
+    return node;
+  }
+  Node *node = new_node_unary(ND_EXPR_STMT, expr());
   expect(";");
   return node;
 }
