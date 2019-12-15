@@ -15,7 +15,7 @@ int main(int argc, char **argv) {
 
   user_input = argv[1];      // 入力値をグローバル変数へ格納
   token = tokenize();        // トークナイズを実行
-  Program *prog = program(); // 構文解析を実行
+  Program *prog = program(); // 構文解析を実行（パースを実行）
 
   // nodeを全て回してvariablesの分だけoffsetを生成し、stack_sizeへ格納する
   int offset = 0;
