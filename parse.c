@@ -119,19 +119,16 @@ static Node *stmt(void) {
     // カウンタ変数
     if (!consume(";")) {
       node->init = new_node_unary(ND_EXPR_STMT, expr());
-      // node->init = new_node_unary(ND_EXPR_STMT, expr());
       expect(";");
     }
     // 条件
     if (!consume(";")) {
       node->cond = expr();
-      // node->cond = expr();
       expect(";");
     }
     // インクリメント
     if (!consume(")")) {
       node->inc = new_node_unary(ND_EXPR_STMT, expr());
-      // node->inc = new_node_unary(ND_EXPR_STMT, expr());
       expect(")");
     }
     node->then = stmt();
