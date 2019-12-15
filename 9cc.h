@@ -73,6 +73,7 @@ typedef enum {
   ND_RETURN,    // "return"
   ND_IF,        // "if"
   ND_WHILE,     // "while"
+  ND_FOR,       // "for"
   ND_NUM,       // 整数
 } NodeKind;
 
@@ -85,10 +86,12 @@ struct Node{
   Node *lhs;     // 左辺（left-hand side）
   Node *rhs;     // 右辺（right-hand side）
 
-  // if or whileの場合使用するノード
+  // if or while or forの場合使用するノード
   Node *cond;   // 条件
   Node *then;   // trueの時 
   Node *els;    // falseの時
+  Node *init;   // forのカウンタ変数
+  Node *inc;    // forのインクリメント変数
 
   Var *var;      // kindがND_VARの場合のみ使う
   int val;       // kindがND_NUMの場合のみ使う

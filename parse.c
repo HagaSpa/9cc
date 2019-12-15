@@ -87,6 +87,7 @@ Program *program(void) {
 // stmt = "return" expr ";"
 //        | "if" "(" expr ")" stmt ("else" stmt)?
 //        | "while" "(" expr ")" stmt
+//        | "for" "(" expr? ";" expr? ";" expr? ")" stmt
 //        | expr ";"
 static Node *stmt(void) {
   if (consume("return")) {
@@ -109,6 +110,30 @@ static Node *stmt(void) {
     expect("(");
     node->cond = expr();
     expect(")");
+    node->then = stmt();
+    return node;
+  }
+  if (consume("for")) {
+    Node *node = new_node(ND_FOR);
+    expect("(");
+    // カウンタ変数
+    if (!consume(";")) {
+      node->init = new_node_unary(ND_EXPR_STMT, expr());
+      // node->init = new_node_unary(ND_EXPR_STMT, expr());
+      expect(";");
+    }
+    // 条件
+    if (!consume(";")) {
+      node->cond = expr();
+      // node->cond = expr();
+      expect(";");
+    }
+    // インクリメント
+    if (!consume(")")) {
+      node->inc = new_node_unary(ND_EXPR_STMT, expr());
+      // node->inc = new_node_unary(ND_EXPR_STMT, expr());
+      expect(")");
+    }
     node->then = stmt();
     return node;
   }

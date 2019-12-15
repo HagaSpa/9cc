@@ -29,6 +29,7 @@ void store() {
 }
 
 static void gen(Node *node) {
+  // 文(Statement)
   switch (node->kind) {
   case ND_NUM:
     printf("  push %d\n", node->val);
@@ -46,12 +47,8 @@ static void gen(Node *node) {
     gen(node->rhs);
     store();
     return;
-  case ND_RETURN:
-    gen(node->lhs);
-    printf("  pop rax\n");
-    printf("  jmp .Lreturn\n");
-    return;
   case ND_IF: {
+    // アセンブリのジャンプ先を一意に決めるためのラベルに使用する
     int seq = labelseq++;
     // elseがあるなら
     if (node->els) {
@@ -86,6 +83,29 @@ static void gen(Node *node) {
     printf(".Lend%d:\n", seq);
     return;
   }
+  case ND_FOR: {
+    int seq = labelseq++;
+    if (node->init)
+      gen(node->init);
+    printf(".Lbegin%d:\n", seq);
+    if (node->cond) {
+      gen(node->cond);
+      printf("  pop rax\n");
+      printf("  cmp rax, 0\n");
+      printf("  je  .Lend%d\n", seq);
+    }
+    gen(node->then);
+    if (node->inc)
+      gen(node->inc);
+    printf("  jmp .Lbegin%d\n", seq);
+    printf(".Lend%d:\n", seq);
+    return;
+  }
+  case ND_RETURN:
+    gen(node->lhs);
+    printf("  pop rax\n");
+    printf("  jmp .Lreturn\n");
+    return;
   }
 
   gen(node->lhs); // 左辺に対してgen()を再帰呼出
@@ -94,6 +114,7 @@ static void gen(Node *node) {
   printf("  pop rdi\n"); // スタックの先頭をrdiへpop（内部ではその後rspが保持するアドレスを変更）
   printf("  pop rax\n"); // スタックの先頭をrazへpop
 
+  // 式(expression)
   switch (node->kind) {
   case ND_ADD:
     printf("  add rax, rdi\n");
