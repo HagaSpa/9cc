@@ -13,14 +13,15 @@
                 "9cc.o",
                 "tokenize.o",
                 "parse.o",
-                "codegen.o"
+                "codegen.o",
+                "tmp2.o"
             ],
             "group": {
                 "kind": "build",
                 "isDefault": true
             },
             "dependsOrder": "sequence",
-            "dependsOn": ["9cc", "tokenize", "parse", "codegen"]
+            "dependsOn": ["9cc", "tokenize", "parse", "codegen", "tmp2"]
         },
         {
             "label": "9cc",
@@ -76,6 +77,26 @@
                 "-o",
                 "codegen.o",
                 "codegen.c"
+            ]
+        },
+        {
+            // c言語のメソッドを定義したアセンブラを生成する。テスト用。
+            "label": "tmp2",
+            "type": "process",
+            "command": "echo",
+            "args": [
+                ">>",
+                "EOF",
+                "|",
+                "gcc",
+                "-xc",
+                "-c",
+                "-o",
+                "tmp2.o",
+                "-",
+                "int ret3() { return 3; }",
+                "int ret5() { return 5; }",
+                "EOF"
             ]
         },
     ]

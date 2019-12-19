@@ -240,7 +240,8 @@ static Node *unary(void) {
   return primary();
 }
 
-// primary = num | "(" expr ")" | indent
+// primary = num | "(" expr ")" | indent ( "(" ")" )?
+// args = "(" ")"
 static Node *primary(void) {
   // 次のトークンが"("なら、"(" expr ")"のはず
   if (consume("(")) {
@@ -251,6 +252,12 @@ static Node *primary(void) {
 
   Token *tok = consume_ident();
   if (tok) {
+    if (consume("(")) {
+      expect(")");
+      Node *node = new_node(ND_FUNCALL);
+      node->funcname = my_strndup(tok->str, tok->len);
+      return node;
+    }
     Var *var = find_var(tok);
     if (!var)
       var = push_var(my_strndup(tok->str, tok->len));

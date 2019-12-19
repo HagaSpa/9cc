@@ -1,4 +1,11 @@
 #!/bin/bash
+
+# テスト用のcプログラムの関数を生成。アセンブル時にtmpにくっつける。
+cat <<EOF | gcc -xc -c -o tmp2.o -
+int ret3() { return 3; }
+int ret5() { return 5; }
+EOF
+
 assert() {
   expected="$1"
   input="$2"
@@ -6,7 +13,7 @@ assert() {
   # 2つめの引数を./9ccバイナリに渡して実行し、その結果（=アセンブリ）をtmp.sへ書き込んでいる
   ./9cc "$input" > tmp.s
   # tmp.sをtmpバイナリへアセンブル。アセンブリ➡️機械語
-  gcc -o tmp tmp.s
+  gcc -o tmp tmp.s tmp2.o
   ./tmp
   # shは$?で直前のコードの終了コードを取得できる（ここでは./tmpの終了コード）
   actual="$?"
@@ -73,5 +80,8 @@ assert 3 'for (;;) return 3; return 5;'
 
 assert 3 '{1; {2;} return 3;}'
 assert 55 'i=0; j=0; while(i<=10) {j=i+j; i=i+1;} return j;'
+
+assert 3 'return ret3();'
+assert 5 'return ret5();'
 
 echo OK
