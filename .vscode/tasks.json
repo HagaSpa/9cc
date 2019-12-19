@@ -80,6 +80,7 @@
             ]
         },
         {
+            // c言語のメソッドを定義したアセンブラを生成する。テスト用。
             "label": "tmp2",
             "type": "process",
             "command": "echo",
