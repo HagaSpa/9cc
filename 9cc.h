@@ -98,6 +98,7 @@ struct Node{
 
   // 関数を呼び出している場合に使う
   char *funcname;
+  Node *args;
 
   Var *var;      // kindがND_VARの場合のみ使う
   int val;       // kindがND_NUMの場合のみ使う
