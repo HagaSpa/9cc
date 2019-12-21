@@ -2,6 +2,9 @@
 
 int labelseq = 0;
 
+// 関数呼び出し時の引数をセットしておくレジスタ。6つまで
+char *argreg[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+
 // nodeの変数をアドレスに変換し、スタックへpush
 void gen_addr(Node *node) {
   if (node->kind == ND_VAR) {
@@ -105,10 +108,21 @@ static void gen(Node *node) {
     for (Node *n = node->body; n; n = n->next)
       gen(n);
     return;
-  case ND_FUNCALL:
+  case ND_FUNCALL: {
+    // 関数呼び出し時の引数の個数分、gen()を呼び出す
+    int nargs = 0;
+    for (Node *arg=node->args; arg; arg=arg->next) {
+      gen(arg);
+      nargs++;
+    }
+    // 引数の個数分、rspからレジスタへpopしてくる 
+    for (int i=nargs-1; i>=0; i--)
+      printf("  pop %s\n", argreg[i]);
+
     printf("  call %s\n", node->funcname);
     printf("  push rax\n");
     return;
+  }
   case ND_RETURN:
     gen(node->lhs);
     printf("  pop rax\n");

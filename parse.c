@@ -240,8 +240,23 @@ static Node *unary(void) {
   return primary();
 }
 
-// primary = num | "(" expr ")" | indent ( "(" ")" )?
-// args = "(" ")"
+// func_args = "(" (assign ("," assign)*)? ")"
+static Node *func_args(void) {
+  if (consume(")"))
+    return NULL;
+
+  Node *head = assign();
+  Node *cur = head;
+  while(consume(",")) {
+    cur->next = assign();
+    cur = cur->next;
+  }
+  expect(")");
+  return head;
+}
+
+
+// primary = num | "(" expr ")" | indent func-args?
 static Node *primary(void) {
   // 次のトークンが"("なら、"(" expr ")"のはず
   if (consume("(")) {
@@ -253,9 +268,9 @@ static Node *primary(void) {
   Token *tok = consume_ident();
   if (tok) {
     if (consume("(")) {
-      expect(")");
       Node *node = new_node(ND_FUNCALL);
       node->funcname = my_strndup(tok->str, tok->len);
+      node->args = func_args();
       return node;
     }
     Var *var = find_var(tok);
