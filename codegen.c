@@ -118,8 +118,23 @@ static void gen(Node *node) {
     // 引数の個数分、rspからレジスタへpopしてくる 
     for (int i=nargs-1; i>=0; i--)
       printf("  pop %s\n", argreg[i]);
-
+    
+    // ここ時点ではまだrspに呼び出される関数名は残っている。
+    // ※x86-64の関数呼び出しのABIの仕様で、関数呼び出し時にrspが16バイトの倍数になっていないと落ちる時があるのでrspを調整。
+    int seq = labelseq++;
+    printf("  mov rax, rsp\n");
+    printf("  and rax, 15\n");
+    printf("  jnz .Lcall%d\n", seq);
+    printf("  mov rax, 0\n");
     printf("  call %s\n", node->funcname);
+    printf("  jmp .Lend%d\n", seq);
+    printf(".Lcall%d:\n", seq);
+    printf("  sub rsp, 8\n");
+    printf("  mov rax, 0\n");
+    // ここで関数を呼び出す
+    printf("  call %s\n", node->funcname);
+    printf("  add rsp, 8\n");
+    printf(".Lend%d:\n", seq);
     printf("  push rax\n");
     return;
   }
