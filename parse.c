@@ -1,12 +1,14 @@
 #include "9cc.h"
 
-Var *locals;
+VarList *locals;
 
 // すでに出現した変数があるか、nameを用いて検索する
 static Var *find_var(Token *tok) {
-  for (Var *var = locals; var; var = var->next)
+  for (VarList *vl=locals; vl; vl=vl->next) {
+    Var *var = vl->var;
     if (strlen(var->name) == tok->len && !memcmp(tok->str, var->name, tok->len))
       return var;
+  }
   return NULL; 
 }
 
@@ -49,10 +51,30 @@ static Node *new_node_var(Var *var) {
 // localsにある変数をnextに入れて、*nameを新しいvarのnameへ格納（先入れ先だしを表現）
 static Var *push_var(char *name) {
   Var *var = calloc(1, sizeof(Var));
-  var->next = locals;
   var->name = name;
-  locals = var;
+  VarList *vl = calloc(1, sizeof(VarList));
+  vl->var = var;
+  vl->next = locals;
+  locals = vl;
   return var;
+}
+
+// ()の中の引数をスタックへpushする
+static VarList *read_func_params(void) {
+  if (consume(")"))
+    return NULL;
+
+  VarList *head = calloc(1, sizeof(VarList));
+  head->var = push_var(expect_ident());
+  VarList *cur = head;
+
+  while (!consume(")")) {
+    expect(",");
+    cur->next = calloc(1, sizeof(VarList));
+    cur->next->var = push_var(expect_ident());
+    cur = cur->next;
+  }
+  return head;
 }
 
 static Function *function(void);
@@ -80,26 +102,25 @@ Function *program(void) {
   return head.next;
 }
 
-// function = ident "(" ")" "{" stmt* "}"
+// function = ident "(" params? ")" "{" stmt* "}"
+// params   = ident ("," ident)*
 Function *function(void) {
   locals = NULL;
 
-  char *name = expect_ident();
+  Function *fn = calloc(1, sizeof(Function));
+  fn->name = expect_ident();
   expect("(");
-  expect(")");
+  fn->params = read_func_params();
   expect("{");
 
   Node head;
   head.next = NULL;
   Node *cur = &head;
-  
   while (!consume("}")) {
     cur->next = stmt();
     cur = cur->next;
   }
 
-  Function *fn = calloc(1, sizeof(Function));
-  fn->name = name;
   fn->node = head.next;
   fn->locals = locals;
   return fn;

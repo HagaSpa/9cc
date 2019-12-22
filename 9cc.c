@@ -20,10 +20,10 @@ int main(int argc, char **argv) {
   for (Function *fn=prog; fn; fn=fn->next) {
     // nodeを全て回してvariablesの分だけoffsetを生成し、stack_sizeへ格納する
     int offset = 0;
-    for (Var *var=prog->locals; var; var=var->next) {
+    for (VarList *vl=fn->locals; vl; vl=vl->next) {
       // 変数１つにつき8バイト割り当てるとする
       offset += 8;
-      var->offset = offset;
+      vl->var->offset = offset;
     }
     fn->stack_size = offset;
   }

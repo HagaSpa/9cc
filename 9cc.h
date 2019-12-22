@@ -53,9 +53,14 @@ extern Token *token;
 // Local Variable
 typedef struct Var Var;
 struct Var {
-  Var *next;
   char *name; // 変数名
   int offset; // RBPからのオフセット
+};
+
+typedef struct VarList VarList;
+struct VarList {
+  VarList *next;
+  Var *var;
 };
 
 // 抽象構文木のノードの種類
@@ -109,8 +114,9 @@ typedef struct Function Function;
 struct Function {
   Function *next;
   char *name;
+  VarList *params;
   Node *node;
-  Var *locals;
+  VarList *locals;
   int stack_size;
 };
 
