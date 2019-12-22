@@ -55,6 +55,7 @@ static Var *push_var(char *name) {
   return var;
 }
 
+static Function *function(void);
 static Node *stmt(void);
 static Node *expr(void);
 static Node *assign(void);
@@ -65,23 +66,43 @@ static Node *mul(void);
 static Node *unary(void);
 static Node *primary(void);
 
-// program = stmt*
-Program *program(void) {
-  locals = NULL;
-
-  Node head = {};
-  Node *cur = &head;
+// program = function*
+Function *program(void) {
+  Function head;
+  head.next = NULL;
+  Function *cur = &head;
 
   // 終了文字が出るまで
   while (!at_eof()) {
+    cur->next = function();
+    cur = cur->next;
+  }
+  return head.next;
+}
+
+// function = ident "(" ")" "{" stmt* "}"
+Function *function(void) {
+  locals = NULL;
+
+  char *name = expect_ident();
+  expect("(");
+  expect(")");
+  expect("{");
+
+  Node head;
+  head.next = NULL;
+  Node *cur = &head;
+  
+  while (!consume("}")) {
     cur->next = stmt();
     cur = cur->next;
   }
 
-  Program *prog = calloc(1, sizeof(Program));
-  prog->node = head.next;
-  prog->locals = locals;
-  return prog;
+  Function *fn = calloc(1, sizeof(Function));
+  fn->name = name;
+  fn->node = head.next;
+  fn->locals = locals;
+  return fn;
 }
 
 // stmt = "return" expr ";"

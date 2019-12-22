@@ -35,6 +35,7 @@ char *my_strndup(char *p, int len);
 Token *consume_ident();
 void expect(char *op);
 int expect_number(void);
+char *expect_ident(void);
 bool at_eof(void);
 Token *tokenize(void);
 
@@ -104,16 +105,19 @@ struct Node{
   int val;       // kindがND_NUMの場合のみ使う
 };
 
-typedef struct {
+typedef struct Function Function;
+struct Function {
+  Function *next;
+  char *name;
   Node *node;
   Var *locals;
   int stack_size;
-} Program;
+};
 
-Program *program(void);
+Function *program(void);
 
 /**
  * codegen.c
  */
 
- void codegen(Program *prog);
+ void codegen(Function *prog);

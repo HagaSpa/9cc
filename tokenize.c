@@ -74,6 +74,15 @@ int expect_number() {
   return val;
 }
 
+// 現在のトークンがTK_IDENTかどうか確認し、TK_IDENTなら１つ進める
+char *expect_ident() {
+  if (token->kind != TK_IDENT)
+    error_at(token->str, "expect an identifier");
+  char *s = my_strndup(token->str, token->len);
+  token = token->next;
+  return s;
+}
+
 // EOFかどうか
 bool at_eof() {
   return token->kind == TK_EOF;

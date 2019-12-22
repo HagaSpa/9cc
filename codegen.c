@@ -2,6 +2,9 @@
 
 int labelseq = 0;
 
+// 関数名
+char *funcname;
+
 // 関数呼び出し時の引数をセットしておくレジスタ。6つまで
 char *argreg[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
 
@@ -141,7 +144,7 @@ static void gen(Node *node) {
   case ND_RETURN:
     gen(node->lhs);
     printf("  pop rax\n");
-    printf("  jmp .Lreturn\n");
+    printf("  jmp .Lreturn.%s\n", funcname);
     return;
   }
 
@@ -192,26 +195,29 @@ static void gen(Node *node) {
   printf("  push rax\n");
 }
 
-void codegen(Program *prog) {
+void codegen(Function *prog) {
   // アセンブリの前半部分を出力
   printf(".intel_syntax noprefix\n");
-  printf(".global main\n");
-  printf("main:\n");
 
-  // プロローグ
-  // prog->stack_sizeに格納されている分だけ、rspを拡張する
-  printf("  push rbp\n");
-  printf("  mov rbp, rsp\n");
-  printf("  sub rsp, %d\n", prog->stack_size);
+  // 関数定義単位で実行する
+  for (Function *fn=prog; fn; fn=fn->next){
+    printf(".global %s\n", fn->name);
+    printf("%s:\n", fn->name);
+    funcname = fn->name;
 
-  // 抽象構文木を下りながらコード生成
-  for (Node *n=prog->node; n; n=n->next) {
-    gen(n);
+    // stack_sizeに格納されている分だけ、rspを拡張する
+    printf("  push rbp\n");
+    printf("  mov rbp, rsp\n");
+    printf("  sub rsp, %d\n", fn->stack_size);
+
+    // 抽象構文木を下りながらコード生成
+    for (Node *n=fn->node; n; n=n->next)
+      gen(n);
+    
+    // エピローグ
+    printf(".Lreturn.%s:\n", funcname);
+    printf("  mov rsp, rbp\n");
+    printf("  pop rbp\n");
+    printf("  ret\n");
   }
-
-  // エピローグ
-  printf(".Lreturn:\n");
-  printf("  mov rsp, rbp\n");
-  printf("  pop rbp\n");
-  printf("  ret\n");
 }
