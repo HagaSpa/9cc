@@ -35,6 +35,7 @@ char *my_strndup(char *p, int len);
 Token *consume_ident();
 void expect(char *op);
 int expect_number(void);
+char *expect_ident(void);
 bool at_eof(void);
 Token *tokenize(void);
 
@@ -52,9 +53,14 @@ extern Token *token;
 // Local Variable
 typedef struct Var Var;
 struct Var {
-  Var *next;
   char *name; // 変数名
   int offset; // RBPからのオフセット
+};
+
+typedef struct VarList VarList;
+struct VarList {
+  VarList *next;
+  Var *var;
 };
 
 // 抽象構文木のノードの種類
@@ -104,16 +110,20 @@ struct Node{
   int val;       // kindがND_NUMの場合のみ使う
 };
 
-typedef struct {
+typedef struct Function Function;
+struct Function {
+  Function *next;
+  char *name;
+  VarList *params;
   Node *node;
-  Var *locals;
+  VarList *locals;
   int stack_size;
-} Program;
+};
 
-Program *program(void);
+Function *program(void);
 
 /**
  * codegen.c
  */
 
- void codegen(Program *prog);
+ void codegen(Function *prog);
