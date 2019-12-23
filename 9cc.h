@@ -74,6 +74,8 @@ typedef enum {
   ND_LT,        // <
   ND_LE,        // <=
   ND_ASSIGN,    // =
+  ND_ADDR,      // 単項式での"&"
+  ND_DEREF,     // 単項式での"*"
   ND_VAR,       // Variable
   ND_EXPR_STMT, // 式ステートメント
   ND_RETURN,    // "return"

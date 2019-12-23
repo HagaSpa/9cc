@@ -8,11 +8,18 @@ char *funcname;
 // 関数呼び出し時の引数をセットしておくレジスタ。6つまで
 char *argreg[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
 
+// gen_addrで呼び出すために宣言
+static void gen(Node *node);
+
 // nodeの変数をアドレスに変換し、スタックへpush
 void gen_addr(Node *node) {
-  if (node->kind == ND_VAR) {
+  switch (node->kind) {
+  case ND_VAR:
     printf("  lea rax, [rbp-%d]\n", node->var->offset);
     printf("  push rax\n");
+    return;
+  case ND_DEREF:
+    gen(node->lhs);
     return;
   }
 
@@ -52,6 +59,13 @@ static void gen(Node *node) {
     gen_addr(node->lhs);
     gen(node->rhs);
     store();
+    return;
+  case ND_ADDR:
+    gen_addr(node->lhs);
+    return;
+  case ND_DEREF:
+    gen(node->lhs);
+    load();
     return;
   case ND_IF: {
     // アセンブリのジャンプ先を一意に決めるためのラベルに使用する
