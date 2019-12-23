@@ -272,13 +272,18 @@ static Node *mul(void) {
   }
 }
 
-// unary = ("+" | "-")? unary | primary
+// unary = ("+" | "-" | "*" | "&")? unary
+//        | primary
 static Node *unary(void) {
   if (consume("+"))
     return unary();
   if (consume("-"))
     // 負の数の場合は、左辺に0を入れて0-xとして表現
     return new_node_binary(ND_SUB, new_node_num(0), unary());
+  if (consume("&"))
+    return new_node_unary(ND_ADDR, unary());
+  if (consume("*"))
+    return new_node_unary(ND_DEREF, unary());
   return primary();
 }
 
