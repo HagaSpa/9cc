@@ -13,15 +13,31 @@ void error(char *fmt, ...) {
   exit(1);
 }
 
-// エラー箇所を報告する
-void error_at(char *loc, char *fmt, ...) {
-  va_list ap;
-  va_start(ap, fmt);
-
+// エラー箇所を報告し、プロセスを終了する
+void verror_at(char *loc, char *fmt, va_list ap) {
   int pos = loc - user_input;
   fprintf(stderr, "%s\n", user_input);
   fprintf(stderr, "%*s", pos, ""); // print pos spaces.
   fprintf(stderr, "^ ");
+  vfprintf(stderr, fmt, ap);
+  fprintf(stderr, "\n");
+  exit(1);
+}
+
+// エラー箇所を報告し、プロセスを終了する
+void error_at(char *loc, char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  verror_at(loc, fmt, ap);
+}
+
+// エラー箇所を報告し、プロセスを終了する
+void error_tok(Token *tok, char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  if (tok)
+    verror_at(tok->str, fmt, ap);
+
   vfprintf(stderr, fmt, ap);
   fprintf(stderr, "\n");
   exit(1);
@@ -37,12 +53,13 @@ char *my_strndup(char *p, int len) {
 
 // 次のトークンが期待する記号の時は、トークンを1つ進めてtrueを返す。
 // それ以外はfalseを返す
-bool consume(char *op) {
+Token *consume(char *op) {
   if (token->kind != TK_RESERVED || strlen(op) != token->len || 
         memcmp(token->str, op, token->len))
-      return false;
+      return NULL;
+  Token *t = token;
   token = token->next;
-  return true;
+  return t;
 }
 
 // TK_IDENTを確認する
@@ -59,7 +76,7 @@ Token *consume_ident() {
 void expect(char *op) {
   if (token->kind != TK_RESERVED || strlen(op) != token->len || 
         memcmp(token->str, op, token->len))
-    error_at(token->str, "expected \"%s\"", op);
+    error_tok(token, "expected \"%s\"", op);
   token = token->next;
 }
 
@@ -67,7 +84,7 @@ void expect(char *op) {
 // それ以外の場合はエラーを報告する。
 int expect_number() {
   if (token->kind != TK_NUM) {
-    error_at(token->str, "expected a number");
+    error_tok(token, "expected a number");
   }
   int val = token->val;
   token = token->next;
@@ -77,7 +94,7 @@ int expect_number() {
 // 現在のトークンがTK_IDENTかどうか確認し、TK_IDENTなら１つ進める
 char *expect_ident() {
   if (token->kind != TK_IDENT)
-    error_at(token->str, "expect an identifier");
+    error_tok(token, "expect an identifier");
   char *s = my_strndup(token->str, token->len);
   token = token->next;
   return s;
