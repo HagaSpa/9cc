@@ -30,7 +30,8 @@ struct Token {
 
 void error(char *fmt, ...);
 void error_at(char *loc, char *fmt, ...);
-bool consume(char *op);
+void error_tok(Token *tok, char *fmt, ...);
+Token *consume(char *op);
 char *my_strndup(char *p, int len);
 Token *consume_ident();
 void expect(char *op);
@@ -95,6 +96,7 @@ struct Node{
   Node *next;    // 次のノード
   Node *lhs;     // 左辺（left-hand side）
   Node *rhs;     // 右辺（right-hand side）
+  Token *tok;    // repesentative token
 
   // if or while or forの場合使用するノード
   Node *cond;   // 条件
